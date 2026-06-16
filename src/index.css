@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --font-size-xxs: 0.65rem;
+  
+  --color-brand-indigo: #5A4BFF;
+  --color-ios-light-bg: #FFFFFF;
+  --color-ios-light-secondary: #F2F2F7;
+  --color-ios-dark-bg: #000000;
+  --color-ios-dark-secondary: #1C1C1E;
+  --color-ios-secondary-text: #8E8E93;
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Custom 3D Flip Anim Card Styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Hide scrollbars for neat slider tabs */
+.scroller-hidden::-webkit-scrollbar {
+  display: none;
+}
+.scroller-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

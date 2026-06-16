@@ -1,0 +1,8 @@
+{
+  "name": "Remix: AI Study Companion",
+  "description": "An interactive, adaptive EdTech application helping students parse documents and engage with AI-crafted study guides, assessments, flashcards, Pomodoro timers, and gamification streaks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
