@@ -72,7 +72,7 @@ import confetti from "canvas-confetti";
 import { PRELOADED_SUBJECTS } from "./data/preloadedSubjects";
 
 const LOCAL_STORAGE_PROGRESS_KEY = "ai_study_companion_progress";
-import { initGlobalPresence, forceUpdatePresence } from "./lib/socketPresence";
+import { initGlobalPresence, forceUpdatePresence, subscribeToMessages, getClientUid } from "./lib/socketPresence";
 
 const getLocalISOString = (d: Date) => {
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -234,6 +234,46 @@ export default function App() {
 
   // Floating System Notifications
   const [notifications, setNotifications] = useState<NotificationInfo[]>([]);
+
+  // Global listener for Direct Messages
+  const activeModeRef = useRef(activeMode);
+  useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
+
+  useEffect(() => {
+    const unsub = subscribeToMessages((msg) => {
+      const myId = getClientUid();
+      if (msg.fromId !== myId && activeModeRef.current !== "dashboard") {
+        window.dispatchEvent(
+          new CustomEvent("add-notification", {
+            detail: {
+              title: `New message from ${msg.fromName}`,
+              description: msg.message,
+              type: "info",
+              badge: "💬 Chat",
+              action: "open-chat",
+              actionPayload: { companionId: msg.fromId, companionName: msg.fromName }
+            }
+          })
+        );
+      }
+    });
+
+    const handleOpenChatAction = (e: any) => {
+      if (activeModeRef.current !== "dashboard") {
+        setActiveMode("dashboard");
+        // re-dispatch for StudyLounge after mount
+        setTimeout(() => {
+           window.dispatchEvent(new CustomEvent("open-chat-action", { detail: e.detail }));
+        }, 300);
+      }
+    };
+    window.addEventListener("open-chat-action", handleOpenChatAction);
+
+    return () => {
+      unsub();
+      window.removeEventListener("open-chat-action", handleOpenChatAction);
+    };
+  }, []);
 
   // Lifted Pomodoro Timer state (persistent background tracking)
   const [timerMode, setTimerMode] = useState<"focus" | "break">("focus");
