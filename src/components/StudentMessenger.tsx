@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User } from "lucide-react";
-import { CompanionStudent, subscribeToMessages, sendDirectMessage, DirectMessage, getClientUid, sendTypingStatus, subscribeToTyping, sessionMessageHistory } from "../lib/socketPresence";
+import { CompanionStudent, subscribeToMessages, sendDirectMessage, DirectMessage, getClientUid, sendTypingStatus, subscribeToTyping, sessionMessageHistory, getUserIdentity } from "../lib/socketPresence";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 interface StudentMessengerProps {
@@ -107,11 +107,12 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
     const myId = getClientUid();
     
     // Optimistic local add
+    const myName = getUserIdentity();
     const newMsg: DirectMessage = {
       id: Math.random().toString(36).substring(2, 9),
       fromId: myId,
       toId: companion.id,
-      fromName: "You",
+      fromName: myName || "You",
       message: inputValue.trim(),
       timestamp: Date.now()
     };
@@ -124,7 +125,7 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
       supabase.from('direct_messages').insert([{
         from_id: myId,
         to_id: companion.id,
-        from_name: "You",
+        from_name: myName || "You",
         message: newMsg.message,
         timestamp: newMsg.timestamp
       }]).then(({ error }) => {
