@@ -36,14 +36,28 @@ export default function StudyLounge({ user }: { user?: any }) {
   const [activeChatCompanion, setActiveChatCompanion] = useState<CompanionStudent | null>(null);
 
   useEffect(() => {
-    import("../lib/socketPresence").then(({ subscribeToMessages }) => {
-      subscribeToMessages((msg) => {
-        // Find if this is from an existing companion
-        if (!activeChatCompanion || (activeChatCompanion.id !== msg.fromId && activeChatCompanion.id !== msg.toId)) {
-          // Could implement unread badge here
+    let unsub: (() => void) | undefined;
+    import("../lib/socketPresence").then(({ subscribeToMessages, getClientUid }) => {
+      unsub = subscribeToMessages((msg) => {
+        const myId = getClientUid();
+        // Only trigger if it's sent to me, and I'm not actively chatting with the sender
+        if (msg.fromId !== myId && (!activeChatCompanion || activeChatCompanion.id !== msg.fromId)) {
+          window.dispatchEvent(
+            new CustomEvent("add-notification", {
+              detail: {
+                title: `New message from ${msg.fromName}`,
+                description: msg.message,
+                type: "reminder",
+                badge: "💬 Chat"
+              }
+            })
+          );
         }
       });
     });
+    return () => {
+      if (unsub) unsub();
+    };
   }, [activeChatCompanion]);
 
   useEffect(() => {

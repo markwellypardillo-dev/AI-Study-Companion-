@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User } from "lucide-react";
-import { CompanionStudent, subscribeToMessages, sendDirectMessage, DirectMessage, getClientUid } from "../lib/socketPresence";
+import { CompanionStudent, subscribeToMessages, sendDirectMessage, DirectMessage, getClientUid, sendTypingStatus, subscribeToTyping } from "../lib/socketPresence";
 
 interface StudentMessengerProps {
   companion: CompanionStudent;
@@ -10,26 +10,54 @@ interface StudentMessengerProps {
 export default function StudentMessenger({ companion, onClose }: StudentMessengerProps) {
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [isCompanionTyping, setIsCompanionTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Load local history if desired, but for now we just show active session messages
-    const unsub = subscribeToMessages((msg) => {
+    const unsubMessages = subscribeToMessages((msg) => {
       // If we receive a message from the currently active companion or sent by us
       if (msg.fromId === companion.id || msg.toId === companion.id) {
         setMessages(prev => [...prev, msg].sort((a, b) => a.timestamp - b.timestamp));
       }
     });
-    return unsub;
+
+    const unsubTyping = subscribeToTyping((data) => {
+      if (data.fromId === companion.id) {
+        setIsCompanionTyping(data.isTyping);
+      }
+    });
+
+    return () => {
+      unsubMessages();
+      unsubTyping();
+    };
   }, [companion.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isCompanionTyping]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    
+    // Emit typing start
+    sendTypingStatus(companion.id, true);
+
+    // Debounce typing stop
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingStatus(companion.id, false);
+    }, 1500);
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    sendTypingStatus(companion.id, false);
 
     const myId = getClientUid();
     
@@ -48,7 +76,7 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
   };
 
   return (
-    <div className="absolute right-full top-0 mr-4 w-72 backdrop-blur-xl bg-white/60 dark:bg-[#1a1c23]/80 border border-white/40 dark:border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(31,38,135,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col font-sans overflow-hidden z-50 h-[380px] origin-right animate-in fade-in zoom-in duration-200">
+    <div className="fixed bottom-4 right-4 w-72 backdrop-blur-xl bg-white/60 dark:bg-[#1a1c23]/80 border border-white/40 dark:border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(31,38,135,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col font-sans overflow-hidden z-[100] h-[380px] origin-bottom-right animate-in fade-in zoom-in duration-200">
       {/* Header */}
       <div className="px-4 py-3 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/20 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -98,6 +126,15 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
             );
           })
         )}
+        {isCompanionTyping && (
+          <div className="flex flex-col max-w-[85%] mr-auto items-start">
+            <div className="px-3 py-2 rounded-2xl text-xs shadow-sm backdrop-blur-md border bg-white/80 dark:bg-zinc-800/80 text-black dark:text-white border-white/50 dark:border-white/10 rounded-bl-sm flex items-center gap-1 h-8">
+              <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -107,7 +144,7 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
           <input
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Write a message..."
             className="flex-1 bg-white/50 dark:bg-black/50 border border-black/10 dark:border-white/10 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-brand-indigo focus:ring-1 focus:ring-brand-indigo text-black dark:text-white placeholder:text-zinc-500 transition-all"
           />

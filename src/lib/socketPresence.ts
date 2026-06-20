@@ -169,6 +169,10 @@ export const initGlobalPresence = (user?: any) => {
     messageListeners.forEach(l => l(msg));
   });
 
+  globalSocket.on("user-typing", (data: any) => {
+    typingListeners.forEach(l => l(data));
+  });
+
   globalSocket.on("disconnect", () => {
     currentIsConnected = false;
     currentCompanions = [];
@@ -251,11 +255,19 @@ export interface DirectMessage {
 }
 
 let messageListeners: Array<(msg: DirectMessage) => void> = [];
+let typingListeners: Array<(data: { fromId: string, isTyping: boolean }) => void> = [];
 
 export const subscribeToMessages = (listener: (msg: DirectMessage) => void) => {
   messageListeners.push(listener);
   return () => {
     messageListeners = messageListeners.filter(l => l !== listener);
+  };
+};
+
+export const subscribeToTyping = (listener: (data: { fromId: string, isTyping: boolean }) => void) => {
+  typingListeners.push(listener);
+  return () => {
+    typingListeners = typingListeners.filter(l => l !== listener);
   };
 };
 
@@ -271,3 +283,14 @@ export const sendDirectMessage = (toId: string, message: string) => {
     });
   }
 };
+
+export const sendTypingStatus = (toId: string, isTyping: boolean) => {
+  if (globalSocket && globalSocket.connected) {
+    globalSocket.emit("user-typing", {
+      toId,
+      fromId: getClientUid(),
+      isTyping
+    });
+  }
+};
+

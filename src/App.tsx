@@ -694,6 +694,12 @@ export default function App() {
     }, 6000);
   };
 
+  useEffect(() => {
+    const handleGlobalNotif = (e: any) => addNotification(e.detail);
+    window.addEventListener("add-notification", handleGlobalNotif);
+    return () => window.removeEventListener("add-notification", handleGlobalNotif);
+  }, []);
+
   const triggerDemoNotification = (type: "reminder" | "achievement") => {
     if (type === "reminder") {
       addNotification({

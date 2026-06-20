@@ -542,6 +542,19 @@ async function startServer() {
       }
     });
 
+    socket.on("user-typing", (data) => {
+      const { toId, fromId, isTyping } = data;
+      if (!toId || !fromId) return;
+
+      const recipient = activePresenceMap.get(toId);
+      if (recipient && recipient.socketId) {
+        io.to(recipient.socketId).emit("user-typing", {
+          fromId,
+          isTyping
+        });
+      }
+    });
+
     socket.on("disconnect", () => {
       let disconnectedId = null;
       for (const [key, val] of activePresenceMap.entries()) {
