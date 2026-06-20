@@ -73,6 +73,11 @@ interface DashboardProps {
   onAddXp?: (amount: number) => void;
 }
 
+const getLocalISOString = (d: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export default function Dashboard({
   user,
   progress,
@@ -131,7 +136,7 @@ export default function Dashboard({
       mood: newJournalMood,
       timestamp: new Date().toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
       durationCompleted: activeSessionMinutes,
-      dateStr: new Date().toLocaleDateString("sv-SE")
+      dateStr: getLocalISOString(new Date())
     };
 
     const updated = [newEntry, ...journalEntries];
@@ -243,7 +248,7 @@ export default function Dashboard({
     const tempDate = new Date();
     
     for (let i = 0; i < 365; i++) {
-      const checkStr = tempDate.toLocaleDateString("sv-SE");
+      const checkStr = getLocalISOString(tempDate);
       if ((studyActivityScores.counts[checkStr] || 0) > 0) {
         streak++;
         tempDate.setDate(tempDate.getDate() - 1);
@@ -252,7 +257,7 @@ export default function Dashboard({
         if (i === 0) {
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
-          const yStr = yesterday.toLocaleDateString("sv-SE");
+          const yStr = getLocalISOString(yesterday);
           if ((studyActivityScores.counts[yStr] || 0) > 0) {
             tempDate.setDate(tempDate.getDate() - 1);
             continue;
@@ -265,7 +270,7 @@ export default function Dashboard({
     // Active days in this 24-week grid
     let activeInGrid = 0;
     gridDates.forEach((d) => {
-      const dStr = d.toLocaleDateString("sv-SE");
+      const dStr = getLocalISOString(d);
       if ((studyActivityScores.counts[dStr] || 0) > 0) {
         activeInGrid++;
       }
@@ -566,7 +571,7 @@ export default function Dashboard({
                     }}
                   >
                     {gridDates.map((date) => {
-                      const dateStr = date.toLocaleDateString("sv-SE");
+                      const dateStr = getLocalISOString(date);
                       const count = studyActivityScores.counts[dateStr] || 0;
                       const detailsList = studyActivityScores.hoverDetails[dateStr] || [];
 

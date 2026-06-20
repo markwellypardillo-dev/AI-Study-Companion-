@@ -73,6 +73,11 @@ import { PRELOADED_SUBJECTS } from "./data/preloadedSubjects";
 
 const LOCAL_STORAGE_PROGRESS_KEY = "ai_study_companion_progress";
 
+const getLocalISOString = (d: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export interface NotificationInfo {
   id: string;
   title: string;
@@ -248,11 +253,64 @@ export default function App() {
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
   const [sleepTimerSecondsLeft, setSleepTimerSecondsLeft] = useState<number>(0);
 
-  // Enhancement: Customizable Daily Focus Goal
+  // Customizable Daily Focus Goal
   const [dailyFocusGoalRounds, setDailyFocusGoalRounds] = useState<number>(() => {
     const saved = localStorage.getItem("ai_study_companion_daily_goal");
     return saved ? parseInt(saved, 10) : 4;
   });
+
+  // Automatically calculate and synchronize the streak across sessions
+  useEffect(() => {
+    const counts: Record<string, number> = {};
+    
+    progress.quizHistory.forEach(q => {
+      if (q.date) counts[q.date] = 1;
+    });
+    
+    try {
+      const fc = localStorage.getItem("ai_study_companion_completed_focus_dates");
+      if (fc) JSON.parse(fc).forEach((dStr: string) => { counts[dStr] = 1; });
+    } catch(e) {}
+    
+    try {
+       const jc = localStorage.getItem("ai_study_companion_journal_entries");
+       if (jc) JSON.parse(jc).forEach((je: any) => { if (je.dateStr) counts[je.dateStr] = 1; });
+    } catch(e) {}
+
+    try {
+       const sc = localStorage.getItem("ai_study_companion_simulated_dates");
+       if (sc) JSON.parse(sc).forEach((dStr: string) => { counts[dStr] = 1; });
+    } catch(e) {}
+
+    let streak = 0;
+    const tempDate = new Date();
+    for (let i = 0; i < 365; i++) {
+      const checkStr = getLocalISOString(tempDate);
+      if (counts[checkStr]) {
+        streak++;
+        tempDate.setDate(tempDate.getDate() - 1);
+      } else {
+        if (i === 0) {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yStr = getLocalISOString(yesterday);
+          if (counts[yStr]) {
+            tempDate.setDate(tempDate.getDate() - 1);
+            continue;
+          }
+        }
+        break;
+      }
+    }
+
+    if (progress.dailyStreak !== streak) {
+      setProgress(p => {
+        const next = { ...p, dailyStreak: streak, lastActiveDate: new Date().toISOString() };
+        localStorage.setItem(LOCAL_STORAGE_PROGRESS_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+  }, [progress.quizHistory, progress.totalFocusSeconds]);
 
   // Web Audio Context & Oscillator Node refs
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -1035,7 +1093,7 @@ export default function App() {
       score,
       total,
       difficulty,
-      date: new Date().toISOString().split("T")[0]
+      date: getLocalISOString(new Date())
     };
 
     const nextHistory = [newLog, ...progress.quizHistory];
@@ -1046,7 +1104,7 @@ export default function App() {
   const handleFocusComplete = (minutes: number) => {
     const addedSecs = minutes * 60;
     try {
-      const todayStr = new Date().toLocaleDateString("sv-SE");
+      const todayStr = getLocalISOString(new Date());
       const saved = localStorage.getItem("ai_study_companion_completed_focus_dates");
       const list = saved ? JSON.parse(saved) : [];
       if (!list.includes(todayStr)) {
