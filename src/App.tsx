@@ -499,7 +499,7 @@ export default function App() {
         }
 
         if (audioRef.current.src !== pathUrl) {
-          audioRef.current.src = targetTrack.src || "";
+          audioRef.current.src = pathUrl;
         }
         audioRef.current.play().catch((error) => {
           console.error("Audio Playback aborted:", error);

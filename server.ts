@@ -526,6 +526,22 @@ async function startServer() {
       io.to("lounge").emit("lounge-update", Array.from(activePresenceMap.values()));
     });
 
+    socket.on("send-direct-message", (data) => {
+      const { toId, fromId, fromName, message } = data;
+      if (!toId || !fromId || !message) return;
+
+      const recipient = activePresenceMap.get(toId);
+      if (recipient && recipient.socketId) {
+        io.to(recipient.socketId).emit("direct-message", {
+          id: Math.random().toString(36).substring(2, 9),
+          fromId,
+          fromName,
+          message,
+          timestamp: Date.now()
+        });
+      }
+    });
+
     socket.on("disconnect", () => {
       let disconnectedId = null;
       for (const [key, val] of activePresenceMap.entries()) {

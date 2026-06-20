@@ -8,6 +8,8 @@ import {
   rerollIdentity
 } from "../lib/socketPresence";
 
+import StudentMessenger from "./StudentMessenger";
+
 const FIRST_NAMES = [
   "Silas", "Evelyn", "Kaelen", "Maeve", "Cyrus", "Aria", "Julian", "Clara", "Félix", "Nico", 
   "Iris", "Atlas", "Aurelia", "Orion", "Zelda", "Vesper", "Sienna", "Elias", "Gideon", "Lyra"
@@ -31,6 +33,18 @@ export default function StudyLounge({ user }: { user?: any }) {
   const [companions, setCompanions] = useState<CompanionStudent[]>([]);
   const [activeCount, setActiveCount] = useState<number>(1);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [activeChatCompanion, setActiveChatCompanion] = useState<CompanionStudent | null>(null);
+
+  useEffect(() => {
+    import("../lib/socketPresence").then(({ subscribeToMessages }) => {
+      subscribeToMessages((msg) => {
+        // Find if this is from an existing companion
+        if (!activeChatCompanion || (activeChatCompanion.id !== msg.fromId && activeChatCompanion.id !== msg.toId)) {
+          // Could implement unread badge here
+        }
+      });
+    });
+  }, [activeChatCompanion]);
 
   useEffect(() => {
     const unsub = subscribeToPresence((newCompanions, newCount, newIsConnected) => {
@@ -166,7 +180,8 @@ export default function StudyLounge({ user }: { user?: any }) {
             companions.map((c) => (
               <div
                 key={c.id}
-                className="p-3 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-2xl border border-white/50 dark:border-white/10 flex items-start gap-3 relative transition-all duration-300 hover:bg-white/60 dark:hover:bg-black/40 hover:scale-[1.01] hover:shadow-md font-sans"
+                onClick={() => setActiveChatCompanion(c)}
+                className="p-3 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-2xl border border-white/50 dark:border-white/10 flex items-start gap-3 relative transition-all duration-300 hover:bg-white/60 dark:hover:bg-black/40 hover:scale-[1.01] hover:shadow-md font-sans cursor-pointer group"
               >
                 {/* Avatar Initial with Status Dot */}
                 <div className="relative shrink-0">
@@ -223,6 +238,13 @@ export default function StudyLounge({ user }: { user?: any }) {
           Live sync enabled!
         </span>
       </div>
+
+      {activeChatCompanion && (
+        <StudentMessenger
+          companion={activeChatCompanion}
+          onClose={() => setActiveChatCompanion(null)}
+        />
+      )}
     </div>
   );
 }

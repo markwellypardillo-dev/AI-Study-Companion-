@@ -165,6 +165,10 @@ export const initGlobalPresence = (user?: any) => {
     handleUpdate();
   });
 
+  globalSocket.on("direct-message", (msg: any) => {
+    messageListeners.forEach(l => l(msg));
+  });
+
   globalSocket.on("disconnect", () => {
     currentIsConnected = false;
     currentCompanions = [];
@@ -236,4 +240,34 @@ export const rerollIdentity = () => {
     localStorage.setItem("ai_study_companion_identity_is_manual", "true");
     forceUpdatePresence();
     return newIdentity;
+};
+
+export interface DirectMessage {
+  id: string;
+  fromId: string;
+  fromName: string;
+  message: string;
+  timestamp: number;
+}
+
+let messageListeners: Array<(msg: DirectMessage) => void> = [];
+
+export const subscribeToMessages = (listener: (msg: DirectMessage) => void) => {
+  messageListeners.push(listener);
+  return () => {
+    messageListeners = messageListeners.filter(l => l !== listener);
+  };
+};
+
+export const sendDirectMessage = (toId: string, message: string) => {
+  if (globalSocket && globalSocket.connected) {
+    const clientUid = getClientUid();
+    const userIdentity = getUserIdentity();
+    globalSocket.emit("send-direct-message", {
+      toId,
+      fromId: clientUid,
+      fromName: userIdentity,
+      message
+    });
+  }
 };

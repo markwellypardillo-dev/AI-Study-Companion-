@@ -57,6 +57,50 @@ export default function FocusMusicPlayer({
   const [showHostingGuide, setShowHostingGuide] = useState<boolean>(false);
   const [showHotkeysGuide, setShowHotkeysGuide] = useState<boolean>(false);
 
+  const [activePlayer, setActivePlayer] = useState<"internal" | "spotify">(() => (localStorage.getItem("ai_study_player_type") as "internal" | "spotify") || "internal");
+  const [spotifyInput, setSpotifyInput] = useState("");
+  const [spotifyEmbedUrl, setSpotifyEmbedUrl] = useState(() => localStorage.getItem("ai_study_spotify_embed") || "");
+
+  const switchPlayer = (mode: "internal" | "spotify") => {
+    setActivePlayer(mode);
+    localStorage.setItem("ai_study_player_type", mode);
+    if (mode === "spotify" && isPlaying) {
+      onTogglePlay(); // Pause internal music
+    }
+  };
+
+  const parseSpotifyUrlToEmbed = (url: string) => {
+    if (!url) return null;
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.hostname !== "open.spotify.com") return null;
+      
+      const parts = parsedUrl.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2) {
+        const type = parts[0];
+        const id = parts[1];
+        if (["track", "album", "playlist", "episode", "show"].includes(type)) {
+          return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+        }
+      }
+    } catch (e) {
+      // Ignore valid parsing errors on text input
+    }
+    return null;
+  };
+
+  const handleSpotifySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const embedUrl = parseSpotifyUrlToEmbed(spotifyInput.trim());
+    if (embedUrl) {
+      setSpotifyEmbedUrl(embedUrl);
+      localStorage.setItem("ai_study_spotify_embed", embedUrl);
+      setSpotifyInput("");
+    } else {
+      alert("Invalid Spotify URL. Please paste a valid link like https://open.spotify.com/playlist/... ");
+    }
+  };
+
   const selectedTrack = tracks.find((t) => t.id === selectedTrackId) || tracks[0];
 
   const handleAddCustomTrack = (e: React.FormEvent) => {
@@ -128,7 +172,95 @@ export default function FocusMusicPlayer({
         </div>
       </div>
 
-      {/* Pulsing Visual Wave Area */}
+      <div className="flex items-center gap-2 mb-4 bg-zinc-200/50 dark:bg-zinc-800/50 p-1 rounded-xl">
+        <button
+          onClick={() => switchPlayer("internal")}
+          className={`flex-1 text-xs py-1.5 rounded-lg font-bold transition-all ${
+            activePlayer === "internal"
+              ? "bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm"
+              : "text-ios-secondary-text hover:text-black dark:hover:text-white"
+          }`}
+        >
+          App Player
+        </button>
+        <button
+          onClick={() => switchPlayer("spotify")}
+          className={`flex-1 text-xs py-1.5 rounded-lg font-bold transition-all ${
+            activePlayer === "spotify"
+              ? "bg-[#1DB954] text-white shadow-sm"
+              : "text-ios-secondary-text hover:text-black dark:hover:text-white"
+          }`}
+        >
+          Spotify
+        </button>
+      </div>
+
+      {activePlayer === "spotify" ? (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <form onSubmit={handleSpotifySubmit} className="mb-4">
+            <label className="text-[10px] font-extrabold text-ios-secondary-text uppercase tracking-wider block mb-1.5 pl-0.5">
+              Connect Spotify Playlist/Track
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={spotifyInput}
+                onChange={(e) => setSpotifyInput(e.target.value)}
+                placeholder="https://open.spotify.com/playlist/..."
+                className="flex-1 text-xs px-3 py-2 bg-ios-light-bg dark:bg-ios-dark-bg border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-[#1DB954]/50 focus:ring-1 focus:ring-[#1DB954]/50 text-black dark:text-white placeholder:text-zinc-400"
+              />
+              <button
+                type="submit"
+                disabled={!spotifyInput.trim()}
+                className="px-3 py-2 bg-[#1DB954] hover:bg-[#1ed760] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors"
+              >
+                Embed
+              </button>
+            </div>
+          </form>
+
+          {spotifyEmbedUrl ? (
+            <div className="flex flex-col gap-2">
+              <div className="rounded-2xl overflow-hidden min-h-[352px] bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 relative group">
+                <iframe
+                  src={spotifyEmbedUrl}
+                  width="100%"
+                  height="352"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  title="Spotify Embed View"
+                  className="block"
+                ></iframe>
+              </div>
+              <div className="text-[10px] text-ios-secondary-text leading-tight bg-blue-500/10 text-blue-500 dark:text-blue-400 p-2 rounded-lg">
+                <strong>Seeing a "Preview" badge?</strong> Spotify only plays full tracks if you're logged in. Because this app is in a preview window, your browser might be blocking Spotify's login cookie. To hear the full songs, click the "Open in new tab" icon (top right of the AI Studio window), and ensure you are logged into Spotify in your browser.
+              </div>
+              <button 
+                onClick={() => {
+                  setSpotifyEmbedUrl("");
+                  localStorage.removeItem("ai_study_spotify_embed");
+                }}
+                className="text-xs text-ios-secondary-text hover:text-black dark:hover:text-white mt-1 underline"
+              >
+                Clear Spotify Link
+              </button>
+            </div>
+          ) : (
+            <div className="bg-ios-light-bg dark:bg-ios-dark-bg border border-zinc-200/60 dark:border-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden h-[352px] font-sans border-dashed">
+              <div className="w-12 h-12 rounded-full bg-[#1DB954]/10 text-[#1DB954] flex items-center justify-center mb-3">
+                <Music className="w-6 h-6" />
+              </div>
+              <h5 className="text-sm font-bold text-black dark:text-white mb-2">Connect Spotify</h5>
+              <p className="text-xs text-ios-secondary-text max-w-[200px] leading-relaxed">
+                Paste a public Spotify playlist, album, or track URL above to listen while you focus.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {/* Pulsing Visual Wave Area */}
       <div className="bg-ios-light-bg dark:bg-ios-dark-bg border border-zinc-200/60 dark:border-zinc-900 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden h-28 shrink-0 mb-4 font-sans">
         {/* Dynamic Wave Simulator */}
         {isPlaying ? (
@@ -272,7 +404,7 @@ export default function FocusMusicPlayer({
             onClick={() => setShowAddCustom(true)}
             className="w-full py-2 border border-dashed border-zinc-300 dark:border-zinc-800 text-ios-secondary-text hover:text-black dark:hover:text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 bg-ios-light-bg/50 dark:bg-ios-dark-bg/50 hover:bg-zinc-200/50"
           >
-            <Plus className="w-3.5 h-3.5" /> Put Your Focus Music Link
+            <Plus className="w-3.5 h-3.5" /> Add Custom URL
           </button>
         ) : (
           <form
@@ -455,6 +587,8 @@ export default function FocusMusicPlayer({
             💡 Chrome / Safari security blocks raw iframe audio streams from un-secured or non-SSL web layouts. Ensure your links always start with <code>https://</code>!
           </div>
         </div>
+      )}
+      </div>
       )}
 
     </div>
