@@ -498,6 +498,8 @@ export default function Dashboard({
         </div>
 
         {/* Study Consistency Heatmap Block */}
+        <StudyLounge user={user} />
+        
         <div className="bg-ios-light-secondary dark:bg-ios-dark-secondary border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -922,8 +924,6 @@ export default function Dashboard({
           onAddXp={onAddXp} 
           journalCount={journalEntries.length} 
         />
-
-        <StudyLounge user={user} />
 
         {/* Quick motivational cards */}
         <div className="bg-brand-indigo/10 border border-brand-indigo/20 rounded-2xl p-4.5 flex gap-3 text-brand-indigo">
