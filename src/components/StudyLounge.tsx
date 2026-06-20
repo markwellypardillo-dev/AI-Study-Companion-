@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Users, Shuffle, Sparkles, User, Flame, GraduationCap, Edit2, Check, X, Wifi } from "lucide-react";
 import { 
   CompanionStudent, 
@@ -253,11 +254,12 @@ export default function StudyLounge({ user }: { user?: any }) {
         </span>
       </div>
 
-      {activeChatCompanion && (
+      {activeChatCompanion && createPortal(
         <StudentMessenger
           companion={activeChatCompanion}
           onClose={() => setActiveChatCompanion(null)}
-        />
+        />,
+        document.body
       )}
     </div>
   );
