@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User } from "lucide-react";
 import { CompanionStudent, subscribeToMessages, sendDirectMessage, DirectMessage, getClientUid, sendTypingStatus, subscribeToTyping, sessionMessageHistory } from "../lib/socketPresence";
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 interface StudentMessengerProps {
   companion: CompanionStudent;
@@ -17,11 +18,53 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Load local history if desired, but for now we just show active session messages
+    const loadMessages = async () => {
+      // Start with local session history
+      let localMsgs = sessionMessageHistory.filter(msg => msg.fromId === companion.id || msg.toId === companion.id).sort((a, b) => a.timestamp - b.timestamp);
+      setMessages(localMsgs);
+
+      if (isSupabaseConfigured) {
+        const myId = getClientUid();
+        const { data, error } = await supabase
+          .from('direct_messages')
+          .select('*')
+          .or(`and(from_id.eq.${myId},to_id.eq.${companion.id}),and(from_id.eq.${companion.id},to_id.eq.${myId})`)
+          .order('timestamp', { ascending: true })
+          .limit(150);
+
+        if (!error && data && data.length > 0) {
+          const loadedMessages: DirectMessage[] = data.map(dbMsg => ({
+            id: dbMsg.id,
+            fromId: dbMsg.from_id,
+            toId: dbMsg.to_id,
+            fromName: dbMsg.from_name,
+            message: dbMsg.message,
+            timestamp: dbMsg.timestamp
+          }));
+          
+          // Merge local and supabase messages to prevent duplicates
+          const merged = [...loadedMessages];
+          localMsgs.forEach(lm => {
+            if (!merged.find(m => m.timestamp === lm.timestamp && m.message === lm.message)) {
+              merged.push(lm);
+            }
+          });
+          setMessages(merged.sort((a, b) => a.timestamp - b.timestamp));
+        } else if (error) {
+          console.error("Error fetching message history. Please ensure 'direct_messages' table exists in Supabase. Schema: id (int/uuid), from_id (text), to_id (text), from_name (text), message (text), timestamp (int8)");
+        }
+      }
+    };
+    loadMessages();
+
     const unsubMessages = subscribeToMessages((msg) => {
       // If we receive a message from the currently active companion or sent by us
       if (msg.fromId === companion.id || msg.toId === companion.id) {
-        setMessages(prev => [...prev, msg].sort((a, b) => a.timestamp - b.timestamp));
+        setMessages(prev => {
+          // Check for dupes
+          if (prev.find(m => m.timestamp === msg.timestamp && m.message === msg.message)) return prev;
+          return [...prev, msg].sort((a, b) => a.timestamp - b.timestamp);
+        });
       }
     });
 
@@ -76,6 +119,18 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
     setMessages(prev => [...prev, newMsg]);
     sendDirectMessage(companion.id, inputValue.trim());
     setInputValue("");
+
+    if (isSupabaseConfigured) {
+      supabase.from('direct_messages').insert([{
+        from_id: myId,
+        to_id: companion.id,
+        from_name: "You",
+        message: newMsg.message,
+        timestamp: newMsg.timestamp
+      }]).then(({ error }) => {
+         if (error) console.error("Error saving message to Supabase:", error);
+      });
+    }
   };
 
   return (
