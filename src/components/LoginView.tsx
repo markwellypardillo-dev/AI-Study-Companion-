@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Sparkles, Mail, Lock, User, ArrowRight, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { googleSignIn, auth } from '../lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginViewProps {
   onLogin: (user: any) => void;
@@ -21,79 +22,50 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
     // Premade account backdoor
     if (email === 'admin@mark.com' && password === 'mark123') {
       onLogin({
-        id: 'premade-admin-123',
+        uid: 'premade-admin-123',
         email: 'admin@mark.com',
-        user_metadata: { name: 'Admin Mark' }
+        displayName: 'Admin Mark'
       });
       return;
     }
 
     setLoading(true);
     setError(null);
-    
-    if (!isSupabaseConfigured) {
-      setError("Supabase is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables to enable authentication.");
-      setLoading(false);
-      return;
-    }
-
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (error) {
-          // Local bypass for unconfirmed emails (default Supabase behavior trap)
-          const mockUsers = JSON.parse(localStorage.getItem('ai_study_mock_users') || '{}');
-          if (mockUsers[email] && mockUsers[email].password === password) {
-            onLogin(mockUsers[email].user);
-            return;
-          }
-          
-          // Backdoor for the user's specific email if they created it before this fix
-          if (email === 'pmarkwelly@gmail.com') {
-            onLogin({
-              id: 'local-bypass-123',
-              email: 'pmarkwelly@gmail.com',
-              user_metadata: { name: 'Scholar' }
-            });
-            return;
-          }
-          
-          throw error;
-        }
-        
-        if (data.user) onLogin(data.user);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        onLogin(userCredential.user);
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password
-        });
-        
-        if (error) throw error;
-        
-        const userObj = data.user || { id: 'mock-' + Date.now(), email, user_metadata: {} };
-        
-        // Save to local cache so login works even if email is unconfirmed
-        const mockUsers = JSON.parse(localStorage.getItem('ai_study_mock_users') || '{}');
-        mockUsers[email] = { password, user: userObj };
-        localStorage.setItem('ai_study_mock_users', JSON.stringify(mockUsers));
-
-        if (data.user) {
-            onLogin(data.user);
-        } else {
-            onLogin(userObj);
-        }
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        onLogin(userCredential.user);
       }
     } catch (err: any) {
-      // Improve the default error message if it's the unconfirmed email scenario
-      if (err.message === "Invalid login credentials") {
-        setError("Invalid login credentials. If you just signed up, you may need to confirm your email address inside your Supabase dashboard.");
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError("Invalid email or password.");
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError("An account already exists with this email.");
+      } else if (err.code === 'auth/weak-password') {
+        setError("Password should be at least 6 characters.");
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError("Email/Password sign-in is not enabled in your Firebase Console. Please enable it in Firebase Authentication settings, or use Google Sign-In.");
       } else {
-        setError(err.message);
+        setError(err.message || 'Failed to authenticate.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await googleSignIn();
+      if (result?.user) {
+        onLogin(result.user);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Google.');
     } finally {
       setLoading(false);
     }
@@ -177,32 +149,47 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
              >
                {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
              </button>
-          </form>
-
-          <div className="mt-6 flex flex-col gap-4">
-             <div className="text-center text-sm text-white/50">
+             
+             <div className="text-center text-sm text-white/50 pt-2">
                 {isLogin ? "Don't have an account? " : "Already have an account? "}
                 <button 
+                  type="button"
                   onClick={() => setIsLogin(!isLogin)} 
-                  className="text-brand-indigo hover:text-indigo-400 font-medium transition-colors"
+                  className="text-brand-indigo hover:text-indigo-400 font-medium transition-colors ml-1"
                 >
                   {isLogin ? 'Sign up' : 'Sign in'}
                 </button>
              </div>
+          </form>
 
+          <div className="mt-6 flex flex-col gap-4">
              <div className="relative flex items-center py-2">
                 <div className="flex-grow border-t border-white/10"></div>
-                <span className="flex-shrink-0 mx-4 text-white/30 text-xs">OR</span>
+                <span className="flex-shrink-0 mx-4 text-white/30 text-xs tracking-wider">OR</span>
                 <div className="flex-grow border-t border-white/10"></div>
              </div>
 
              <button
-               onClick={onEnterGuest}
-               className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-medium transition-all group"
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
              >
-               <User className="w-4 h-4 text-white/60 group-hover:text-white" />
+                {loading ? 'Processing...' : (
+                  <>
+                    <svg className="w-5 h-5 bg-white rounded-full p-0.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/><path d="M1 1h22v22H1z" fill="none"/></svg>
+                    Continue with Google
+                  </>
+                )}
+             </button>
+
+             <button
+               onClick={onEnterGuest}
+               className="w-full flex items-center justify-center gap-2 py-3 bg-transparent hover:bg-white/5 text-white/70 hover:text-white rounded-xl font-medium transition-all group"
+             >
+               <User className="w-4 h-4 text-white/50 group-hover:text-white/80" />
                Continue as Guest
-               <ArrowRight className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:translate-x-2 transition-all text-white/60" />
+               <ArrowRight className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:translate-x-2 transition-all text-white/50" />
              </button>
           </div>
         </div>

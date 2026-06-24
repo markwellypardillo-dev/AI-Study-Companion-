@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { supabase } from "./lib/supabase";
+import { auth, logout } from "./lib/firebase";
+import { loadProgressFromFirestore, saveProgressToFirestore } from "./lib/db";
+import { onAuthStateChanged } from "firebase/auth";
 import { LoginView } from "./components/LoginView";
 
 const logoUrl = "https://i.postimg.cc/ht4X0Tbj/LOGO-for-Ai-companion.png";
@@ -203,6 +205,30 @@ export default function App() {
 
   const [user, setUser] = useState<any>(null);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
+  const [authInitialized, setAuthInitialized] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setIsGuestMode(false);
+        const storedProgress = await loadProgressFromFirestore();
+        if (storedProgress) {
+          setProgress(prev => ({ ...prev, ...storedProgress }));
+        }
+      }
+      setAuthInitialized(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user && !isGuestMode) {
+      saveProgressToFirestore(progress);
+    } else {
+      localStorage.setItem(LOCAL_STORAGE_PROGRESS_KEY, JSON.stringify(progress));
+    }
+  }, [progress, user, isGuestMode]);
 
   useEffect(() => {
     localStorage.setItem("ai_study_companion_active_tab", activeMode);
@@ -1214,8 +1240,10 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    if (supabase && supabase.auth) {
-      await supabase.auth.signOut();
+    try {
+      await logout();
+    } catch (e) {
+      console.error(e);
     }
     setUser(null);
     setIsGuestMode(false);

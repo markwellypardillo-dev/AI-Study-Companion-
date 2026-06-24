@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // users
+    function isValidUser(data) {
+      return data.keys().hasAny(['uid', 'email'])
+        && (!('uid' in data) || (data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 256))
+        && (!('level' in data) || data.level is number)
+        && (!('xp' in data) || data.xp is number)
+        && (!('xpToNextLevel' in data) || data.xpToNextLevel is number)
+        && (!('totalFocusSeconds' in data) || data.totalFocusSeconds is number)
+        && (!('dailyStreak' in data) || data.dailyStreak is number)
+        && (!('lastActiveDate' in data) || (data.lastActiveDate is string && data.lastActiveDate.size() <= 32))
+        && (!('masteredTermsCount' in data) || data.masteredTermsCount is number)
+        && (!('completedStudiesCount' in data) || data.completedStudiesCount is number)
+        && (!('unlockedAchievements' in data) || (data.unlockedAchievements is list))
+        && (!('quizHistory' in data) || (data.quizHistory is list))
+        && (!('dailyGoal' in data) || data.dailyGoal is number);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming());
+      allow delete: if false; // Users cannot be deleted
+
+      match /journalEntries/{entryId} {
+        function isValidJournalEntry(data) {
+          return data.keys().hasAny(['userId'])
+            && (!('userId' in data) || (data.userId is string && data.userId == request.auth.uid));
+        }
+
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(entryId) && isValidJournalEntry(incoming());
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidId(entryId) && isValidJournalEntry(incoming());
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /quizResults/{resultId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+
+    match /direct_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().fromId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

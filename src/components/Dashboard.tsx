@@ -115,23 +115,25 @@ export default function Dashboard({
   const [showDebug, setShowDebug] = useState<boolean>(false);
   
   // Study journal local state
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem("ai_study_companion_journal_entries");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [journalEntries, setJournalEntries] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    // Only load if not guest or something. App.tsx already syncs Firebase.
+    import("../lib/db").then(({ syncJournalEntries }) => {
+      const unsub = syncJournalEntries(setJournalEntries);
+      return unsub;
+    });
+  }, []);
+
   const [newJournalNote, setNewJournalNote] = useState<string>("");
   const [newJournalMood, setNewJournalMood] = useState<"focused" | "neutral" | "tired">("focused");
   const [activeSessionMinutes, setActiveSessionMinutes] = useState<number>(25);
 
-  const handleAddJournalEntry = (e: FormEvent) => {
+  const handleAddJournalEntry = async (e: FormEvent) => {
     e.preventDefault();
     if (!newJournalNote.trim()) return;
 
-    const newEntry: JournalEntry = {
+    const newEntry = {
       id: "journal-" + Date.now(),
       notes: newJournalNote.trim(),
       mood: newJournalMood,
@@ -140,6 +142,10 @@ export default function Dashboard({
       dateStr: getLocalISOString(new Date())
     };
 
+    const { addJournalEntry } = await import("../lib/db");
+    await addJournalEntry(newEntry);
+    
+    // Also update local for immediate feedback
     const updated = [newEntry, ...journalEntries];
     setJournalEntries(updated);
     localStorage.setItem("ai_study_companion_journal_entries", JSON.stringify(updated));
@@ -147,7 +153,10 @@ export default function Dashboard({
     setNewJournalNote("");
   };
 
-  const handleRemoveJournalEntry = (id: string) => {
+  const handleRemoveJournalEntry = async (id: string) => {
+    const { deleteJournalEntry } = await import("../lib/db");
+    await deleteJournalEntry(id);
+
     const updated = journalEntries.filter((item) => item.id !== id);
     setJournalEntries(updated);
     localStorage.setItem("ai_study_companion_journal_entries", JSON.stringify(updated));

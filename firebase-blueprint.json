@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user profile and their study progress",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "level": { "type": "number" },
+        "xp": { "type": "number" },
+        "totalFocusSeconds": { "type": "number" },
+        "dailyStreak": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "unlockedFeatures": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "dailyGoal": { "type": "number" }
+      },
+      "required": ["uid", "email"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "A study journal entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["userId", "date", "content"]
+    },
+    "QuizResult": {
+      "title": "QuizResult",
+      "description": "Result of a quiz taken by a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "quizId": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "date": { "type": "string" }
+      },
+      "required": ["userId", "score", "totalQuestions", "date"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles"
+    },
+    "users/{userId}/journalEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/JournalEntry" },
+      "description": "Stores journal entries for a user"
+    },
+    "users/{userId}/quizResults/{resultId}": {
+      "schema": { "$ref": "#/entities/QuizResult" },
+      "description": "Stores quiz results for a user"
+    }
+  }
+}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User, Reply } from "lucide-react";
 import { CompanionStudent, subscribeToMessages, sendDirectMessage, DirectMessage, getClientUid, sendTypingStatus, subscribeToTyping, sessionMessageHistory, getUserIdentity } from "../lib/socketPresence";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { collection, addDoc, query, where, getDocs, or, orderBy, limit } from "firebase/firestore";
 
 interface StudentMessengerProps {
   companion: CompanionStudent;
@@ -24,26 +25,29 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
       let localMsgs = sessionMessageHistory.filter(msg => msg.fromId === companion.id || msg.toId === companion.id).sort((a, b) => a.timestamp - b.timestamp);
       setMessages(localMsgs);
 
-      if (isSupabaseConfigured) {
+      try {
         const myId = getClientUid();
-        const { data, error } = await supabase
-          .from('direct_messages')
-          .select('*')
-          .or(`and(from_id.eq.${myId},to_id.eq.${companion.id}),and(from_id.eq.${companion.id},to_id.eq.${myId})`)
-          .order('timestamp', { ascending: true })
-          .limit(150);
-
-        if (!error && data && data.length > 0) {
-          const loadedMessages: DirectMessage[] = data.map(dbMsg => ({
-            id: dbMsg.id,
-            fromId: dbMsg.from_id,
-            toId: dbMsg.to_id,
-            fromName: dbMsg.from_name,
-            message: dbMsg.message,
-            timestamp: dbMsg.timestamp
+        const q = query(
+          collection(db, "direct_messages"),
+          or(
+            where("conversationId", "==", `${myId}_${companion.id}`),
+            where("conversationId", "==", `${companion.id}_${myId}`)
+          ),
+          orderBy("timestamp", "asc"),
+          limit(150)
+        );
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const loadedMessages: DirectMessage[] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            fromId: doc.data().fromId,
+            toId: doc.data().toId,
+            fromName: doc.data().fromName,
+            message: doc.data().message,
+            timestamp: doc.data().timestamp
           }));
           
-          // Merge local and supabase messages to prevent duplicates
           const merged = [...loadedMessages];
           localMsgs.forEach(lm => {
             if (!merged.find(m => m.timestamp === lm.timestamp && m.message === lm.message)) {
@@ -51,9 +55,9 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
             }
           });
           setMessages(merged.sort((a, b) => a.timestamp - b.timestamp));
-        } else if (error) {
-          console.error("Error fetching message history. Please ensure 'direct_messages' table exists in Supabase. Schema: id (int/uuid), from_id (text), to_id (text), from_name (text), message (text), timestamp (int8)");
         }
+      } catch (error) {
+        // Ignoring error for now if the collection doesn't exist or no permission
       }
     };
     loadMessages();
@@ -130,16 +134,17 @@ export default function StudentMessenger({ companion, onClose }: StudentMessenge
     setInputValue("");
     setReplyingTo(null);
 
-    if (isSupabaseConfigured) {
-      supabase.from('direct_messages').insert([{
-        from_id: myId,
-        to_id: companion.id,
-        from_name: myName || "You",
+    try {
+      addDoc(collection(db, "direct_messages"), {
+        conversationId: `${myId}_${companion.id}`,
+        fromId: myId,
+        toId: companion.id,
+        fromName: myName || "You",
         message: newMsg.message,
         timestamp: newMsg.timestamp
-      }]).then(({ error }) => {
-         if (error) console.error("Error saving message to Supabase:", error);
       });
+    } catch (err) {
+      console.error("Error saving message", err);
     }
   };
 
