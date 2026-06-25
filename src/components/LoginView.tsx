@@ -87,15 +87,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-8 shadow-2xl">
-          <div className="text-center mb-8">
-             <div className="inline-flex items-center justify-center p-3 bg-brand-indigo/20 rounded-2xl mb-4 border border-brand-indigo/30 backdrop-blur-md">
-               <Sparkles className="w-8 h-8 text-brand-indigo drop-shadow-[0_0_8px_rgba(90,75,255,0.8)]" />
+        <div className="backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="text-center mb-6 sm:mb-8">
+             <div className="inline-flex items-center justify-center p-2.5 sm:p-3 bg-brand-indigo/20 rounded-2xl mb-3 sm:mb-4 border border-brand-indigo/30 backdrop-blur-md">
+               <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-brand-indigo drop-shadow-[0_0_8px_rgba(90,75,255,0.8)]" />
              </div>
-             <h1 className="text-3xl font-bold text-white tracking-tight">
+             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                 {isLogin ? 'Welcome Back' : 'Create Account'}
              </h1>
-             <p className="text-white/60 mt-2 text-sm">
+             <p className="text-white/60 mt-1.5 sm:mt-2 text-sm">
                 Focus on your studies with our intelligent assistant
              </p>
           </div>
@@ -151,7 +151,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
              <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-brand-indigo hover:bg-indigo-600 text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(90,75,255,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3 sm:py-3.5 bg-brand-indigo hover:bg-indigo-600 text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(90,75,255,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
              >
                {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
              </button>
@@ -168,8 +168,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
              </div>
           </form>
 
-          <div className="mt-6 flex flex-col gap-4">
-             <div className="relative flex items-center py-2">
+          <div className="mt-5 sm:mt-6 flex flex-col gap-3 sm:gap-4">
+             <div className="relative flex items-center py-1 sm:py-2">
                 <div className="flex-grow border-t border-white/10"></div>
                 <span className="flex-shrink-0 mx-4 text-white/30 text-xs tracking-wider">OR</span>
                 <div className="flex-grow border-t border-white/10"></div>
@@ -179,7 +179,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                className="w-full py-3 sm:py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
              >
                 {loading ? 'Processing...' : (
                   <>
