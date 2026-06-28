@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Rotate3d, CheckCircle2, Bookmark, Award } from "lucide-react";
 import { FlashcardItem } from "../types";
-import confetti from "canvas-confetti";
+import { triggerConfettiWithSound as confetti } from "../lib/sounds";
 
 interface FlashcardsProps {
   cards: FlashcardItem[];

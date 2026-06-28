@@ -70,7 +70,7 @@ import Flashcards from "./components/Flashcards";
 import Dashboard from "./components/Dashboard";
 import DynamicIsland from "./components/DynamicIsland";
 import FloatingNotepad from "./components/FloatingNotepad";
-import confetti from "canvas-confetti";
+import { triggerConfettiWithSound as confetti, playNotificationSound } from "./lib/sounds";
 import { PRELOADED_SUBJECTS } from "./data/preloadedSubjects";
 
 const LOCAL_STORAGE_PROGRESS_KEY = "ai_study_companion_progress";
@@ -766,6 +766,7 @@ export default function App() {
     const id = "notif-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6);
     const newNotif = { ...notif, id };
     setNotifications((prev) => [...prev, newNotif]);
+    playNotificationSound();
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 6000);

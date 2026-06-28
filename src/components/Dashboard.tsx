@@ -7,11 +7,6 @@ import {
   Activity, 
   Target, 
   Zap, 
-  RotateCcw, 
-  Terminal, 
-  FileText, 
-  Eye, 
-  EyeOff,
   PenTool,
   Trash2,
   Plus,
@@ -113,7 +108,6 @@ export default function Dashboard({
   onSetDailyFocusGoalRounds,
   onAddXp
 }: DashboardProps) {
-  const [showDebug, setShowDebug] = useState<boolean>(false);
   const [showGridHelp, setShowGridHelp] = useState<boolean>(false);
   const [showJournalHelp, setShowJournalHelp] = useState<boolean>(false);
   const [showQuizHelp, setShowQuizHelp] = useState<boolean>(false);
@@ -819,97 +813,6 @@ export default function Dashboard({
               No reflection journals logged yet. Wrap up your study session by logging notes above!
             </div>
           )}
-        </div>
-
-        {/* Document Parsing Debug Inspector panel */}
-        <div id="document-parsing-debug-panel" className="bg-ios-light-secondary dark:bg-ios-dark-secondary border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-5 h-5 text-brand-indigo" />
-              <h3 className="font-extrabold text-[13px] sm:text-sm text-zinc-950 dark:text-white leading-tight">Extracted Document Text</h3>
-            </div>
-            
-            <button
-              id="btn-toggle-debug-view"
-              onClick={() => setShowDebug(!showDebug)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-brand-indigo/10 text-brand-indigo hover:opacity-85 self-start sm:self-auto shadow-sm"
-            >
-              {showDebug ? (
-                <>
-                  <EyeOff className="w-3.5 h-3.5" /> Hide Text
-                </>
-              ) : (
-                <>
-                  <Eye className="w-3.5 h-3.5" /> Show Text
-                </>
-              )}
-            </button>
-          </div>
-
-          <p className="text-[11px] sm:text-xs text-ios-secondary-text leading-normal">
-            View the raw text extracted from your document.
-          </p>
-
-          {showDebug && (
-            <div className="space-y-4 pt-2 border-t border-zinc-200/50 dark:border-zinc-800/50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* File Metadata Stat 1 */}
-                <div className="p-3 bg-ios-light-bg dark:bg-ios-dark-bg rounded-xl border border-zinc-200/50 dark:border-zinc-900/30">
-                  <span className="text-[10px] sm:text-[11px] text-ios-secondary-text uppercase tracking-wider block font-bold">Active Loaded File</span>
-                  <span className="text-xs font-extrabold text-black dark:text-white font-mono truncate block mt-0.5" title={fileName || "No document loaded"}>
-                    {fileName || "No active document parsed"}
-                  </span>
-                </div>
-
-                {/* File Metadata Stat 2 */}
-                <div className="p-3 bg-ios-light-bg dark:bg-ios-dark-bg rounded-xl border border-zinc-200/50 dark:border-zinc-900/30">
-                  <span className="text-[10px] sm:text-[11px] text-ios-secondary-text uppercase tracking-wider block font-bold">Extraction Metrics</span>
-                  <span className="text-xs font-black text-brand-indigo mt-0.5 block font-mono">
-                    {fileContent ? fileContent.length.toLocaleString() : 0} chars • {fileContent ? fileContent.trim().split(/\s+/).filter(Boolean).length.toLocaleString() : 0} words
-                  </span>
-                </div>
-              </div>
-
-              {/* Text Area scrollbox with content */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="text-[10px] sm:text-[11px] font-bold text-ios-secondary-text uppercase tracking-wide flex items-center gap-1">
-                    <FileText className="w-3 h-3 text-ios-secondary-text" /> Document Preview (First 2,000 Characters)
-                  </label>
-                </div>
-                
-                {fileContent ? (
-                  <div className="bg-black text-brand-indigo/85 p-4 rounded-2xl font-mono text-[10px] sm:text-xs whitespace-pre-wrap overflow-y-auto max-h-56 leading-relaxed border border-zinc-900/70 select-text">
-                    {fileContent.slice(0, 2000)}
-                    {fileContent.length > 2000 && (
-                      <span className="text-ios-secondary-text block italic mt-2 border-t border-zinc-900/70 pt-2 font-sans font-medium">
-                        ... [+ {fileContent.length - 2000} additional characters extracted from this subject outline]
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-[10px] sm:text-xs text-ios-secondary-text border border-dashed border-zinc-300 dark:border-zinc-800 rounded-2xl font-mono">
-                    No text extracted yet. Please upload a PDF, DOCX, PPTX, or TXT document first.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Clear Stats Data option */}
-        <div className="flex justify-end pt-2">
-          <button
-            id="btn-reset-dashboard-data"
-            onClick={() => {
-              if (confirm("Are you sure you want to restore factory defaults? This clears your XP levels and log histories.")) {
-                onResetProgress();
-              }
-            }}
-            className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-ios-secondary-text hover:text-red-500 transition-colors"
-          >
-            <RotateCcw className="w-3 h-3" /> Factory Reset Stats
-          </button>
         </div>
 
       </div>

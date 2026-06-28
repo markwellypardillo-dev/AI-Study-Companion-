@@ -218,9 +218,7 @@ app.post("/api/study-lounge/presence", (req, res) => {
   }
 });
 
-app.get("/40-hz-study-music.mp3", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "40 Hz Study Music_spotdown.org.mp3"));
-});
+
 
   // Raw Text Extraction API Route
   app.post("/api/extract-text", async (req, res) => {
@@ -259,8 +257,10 @@ app.get("/40-hz-study-music.mp3", (req, res) => {
       }
 
       const prompt = `
-You are an expert EdTech tutor. Your job is to generate a comprehensive, highly engaging, and structured Study Guide based STRICTLY on the document content provided below. 
-You are strictly forbidden from fabricating or using outside knowledge (no hallucinations). All facts, summaries, key terms, and definitions must be grounded in the source text.
+You are an expert EdTech tutor. Your job is to generate a comprehensive, highly intelligent, and structured Study Guide based STRICTLY on the document content provided below. 
+You are strictly forbidden from fabricating or using outside knowledge (no hallucinations). Do NOT get any definitions or facts from online sources or external dictionaries. All facts, summaries, key concepts, vocabulary definitions, and flashcards MUST be 100% grounded in the source text provided. 
+
+Analyze the text deeply to identify the most critical information, core arguments, and essential data that a student MUST memorize because it is highly likely to appear in their quizzes, exams, or oral recitations. Focus on high-yield information.
 
 Document Title: ${fileName || "Untitled Document"}
 Document Text:
@@ -268,12 +268,12 @@ Document Text:
 ${fileContent}
 """
 
-Generate a complete, beautiful study guide structured precisely as follows in JSON output format.
+Generate a complete study guide structured precisely as follows in JSON output format.
 Provide:
-1. "summary": A high-level, clear, Gen-Z friendly summary of the text (2-3 paragraphs).
-2. "chapters" / "sections": A structured list of main visual sections, with "title", "content" (bullet notes), and "relevance".
-3. "keyConcepts": Key concepts extracted of size 4-8. Each concept must have a "concept" name, "explanation" (very comprehensive yet clear), and "importance".
-4. "vocabulary": A glossary/mapping of important vocabulary containing 5-10 terms with "term" and "definition".
+1. "summary": A highly intelligent, clear summary of the text highlighting the most critical overarching themes (2-3 paragraphs).
+2. "chapters" / "sections": A structured list of main visual sections, with "title", "content" (bullet notes of the most testable information), and "relevance" (why this is likely to be on an exam).
+3. "keyConcepts": Key concepts extracted (4-8 items). Each concept must have a "concept" name, "explanation" (intelligent, comprehensive, and clear, based only on the text), and "importance" (why it matters for the student's success).
+4. "vocabulary": A glossary of important vocabulary (5-10 terms). IMPORTANT: The "definition" must be derived SOLELY from how the term is used or defined in the provided text.
 5. "flashcards": list of 6-12 interactive flashcard pairs containing "front" (question or concept to recall) and "back" (detailed direct recall answer/definition).
 
 Return your response strictly as a JSON object matching this structural schema.

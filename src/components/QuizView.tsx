@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { HelpCircle, CheckCircle, XCircle, Award, RefreshCw, BookMarked, ArrowUpRight, Trophy, GraduationCap, FastForward, ShieldAlert } from "lucide-react";
 import { AssessmentQuestion, DifficultyTier } from "../types";
-import confetti from "canvas-confetti";
+import { triggerConfettiWithSound as confetti } from "../lib/sounds";
 import { PRELOADED_SUBJECTS } from "../data/preloadedSubjects";
 
 interface QuizViewProps {
@@ -280,7 +280,7 @@ export default function QuizView({
                       placeholder={q.type === "fib" ? "Type the missing word..." : "Type your direct explanation..."}
                       value={uAns}
                       onChange={(e) => setAnswerField(q.id, e.target.value)}
-                      className="w-full px-4 py-3 text-xs bg-ios-light-bg dark:bg-ios-dark-bg border border-zinc-200 dark:border-zinc-805 rounded-xl focus:ring-1 focus:ring-brand-indigo text-black dark:text-white placeholder-zinc-400 transition-all font-semibold"
+                      className="w-full px-4 py-3 text-xs bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-brand-indigo text-black dark:text-white placeholder-zinc-400 transition-all font-semibold outline-none"
                     />
 
                     {quizFinished && (
@@ -307,7 +307,7 @@ export default function QuizView({
                       placeholder="Synthesize your comprehensive response based strictly on the source document guidelines..."
                       value={uAns}
                       onChange={(e) => setAnswerField(q.id, e.target.value)}
-                      className="w-full p-4 text-xs bg-ios-light-bg dark:bg-ios-dark-bg border border-zinc-200 dark:border-zinc-805 rounded-xl focus:ring-1 focus:ring-brand-indigo text-black dark:text-white placeholder-zinc-400 leading-relaxed font-sans transition-all"
+                      className="w-full p-4 text-xs bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-1 focus:ring-brand-indigo text-black dark:text-white placeholder-zinc-400 leading-relaxed font-sans transition-all outline-none resize-none"
                     />
 
                     {quizFinished && (

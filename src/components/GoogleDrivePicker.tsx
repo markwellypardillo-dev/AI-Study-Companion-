@@ -38,7 +38,11 @@ export default function GoogleDrivePicker({ onFileSelected, onClose }: GoogleDri
         setNeedsAuth(false);
         fetchFiles(result.accessToken);
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError(''); // Silently ignore popup closed
+        return;
+      }
       console.error('Login failed:', err);
       setError('Failed to sign in to Google Drive.');
     }

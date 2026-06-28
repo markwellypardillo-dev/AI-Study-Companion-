@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, Mail, Lock, User, ArrowRight, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, User, ArrowRight, AlertTriangle } from 'lucide-react';
 import { googleSignIn, auth } from '../lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginViewProps {
   onLogin: (user: any) => void;
@@ -9,54 +8,8 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Premade account backdoor
-    if (email === 'admin@mark.com' && password === 'mark123') {
-      onLogin({
-        uid: 'premade-admin-123',
-        email: 'admin@mark.com',
-        displayName: 'Admin Mark'
-      });
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        onLogin(userCredential.user);
-      } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        onLogin(userCredential.user);
-      }
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError("Invalid email or password.");
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError("An account already exists with this email.");
-      } else if (err.code === 'auth/weak-password') {
-        setError("Password should be at least 6 characters.");
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError("Email/Password sign-in is not enabled in your Firebase Console. Please enable it in Firebase Authentication settings, or use Google Sign-In.");
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError("This domain is not authorized for OAuth operations. You need to add this app's URL to the 'Authorized domains' list in your Firebase Console (Authentication > Settings > Authorized domains).");
-      } else {
-        setError(err.message || 'Failed to authenticate.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -67,7 +20,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
         onLogin(result.user);
       }
     } catch (err: any) {
-      if (err.code === 'auth/unauthorized-domain') {
+      if (err.code === 'auth/popup-closed-by-user') {
+        // User closed the popup, silently ignore and don't show error
+        setError(null);
+      } else if (err.code === 'auth/unauthorized-domain') {
         setError("This domain is not authorized for OAuth. You need to add this app's URL to the 'Authorized domains' list in your Firebase Console (Authentication > Settings > Authorized domains).");
       } else {
         setError(err.message || 'Failed to sign in with Google.');
@@ -93,93 +49,25 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onEnterGuest }) =
                <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-brand-indigo drop-shadow-[0_0_8px_rgba(90,75,255,0.8)]" />
              </div>
              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
+                Welcome
              </h1>
              <p className="text-white/60 mt-1.5 sm:mt-2 text-sm">
                 Focus on your studies with our intelligent assistant
              </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-             {error && (
-               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm backdrop-blur-md text-center">
-                 {error}
-               </div>
-             )}
-             
-             <div className="space-y-1">
-               <label className="text-xs font-medium text-white/70 ml-1">Email</label>
-               <div className="relative">
-                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                   <Mail className="w-5 h-5 text-white/40" />
-                 </div>
-                 <input
-                   type="email"
-                   value={email}
-                   onChange={(e) => setEmail(e.target.value)}
-                   required
-                   className="w-full bg-white/5 border border-white/10 text-white rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-brand-indigo/50 focus:border-brand-indigo/50 transition-all placeholder:text-white/30 relative z-0"
-                   placeholder="student@university.edu"
-                 />
-               </div>
-             </div>
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm backdrop-blur-md text-center mb-4">
+              {error}
+            </div>
+          )}
 
-             <div className="space-y-1">
-               <label className="text-xs font-medium text-white/70 ml-1">Password</label>
-               <div className="relative">
-                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                   <Lock className="w-5 h-5 text-white/40" />
-                 </div>
-                 <input
-                   type={showPassword ? "text" : "password"}
-                   value={password}
-                   onChange={(e) => setPassword(e.target.value)}
-                   required
-                   className="w-full bg-white/5 border border-white/10 text-white rounded-xl py-3 pl-10 pr-10 focus:outline-none focus:ring-2 focus:ring-brand-indigo/50 focus:border-brand-indigo/50 transition-all placeholder:text-white/30 relative z-0"
-                   placeholder="••••••••"
-                 />
-                 <button
-                   type="button"
-                   onClick={() => setShowPassword(!showPassword)}
-                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white transition-colors z-10"
-                 >
-                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                 </button>
-               </div>
-             </div>
-
-             <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 sm:py-3.5 bg-brand-indigo hover:bg-indigo-600 text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(90,75,255,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-             >
-               {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-             </button>
-             
-             <div className="text-center text-sm text-white/50 pt-2">
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <button 
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)} 
-                  className="text-brand-indigo hover:text-indigo-400 font-medium transition-colors ml-1"
-                >
-                  {isLogin ? 'Sign up' : 'Sign in'}
-                </button>
-             </div>
-          </form>
-
-          <div className="mt-5 sm:mt-6 flex flex-col gap-3 sm:gap-4">
-             <div className="relative flex items-center py-1 sm:py-2">
-                <div className="flex-grow border-t border-white/10"></div>
-                <span className="flex-shrink-0 mx-4 text-white/30 text-xs tracking-wider">OR</span>
-                <div className="flex-grow border-t border-white/10"></div>
-             </div>
-
+          <div className="flex flex-col gap-3 sm:gap-4">
              <button
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full py-3 sm:py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                className="w-full py-3 sm:py-4 bg-brand-indigo hover:bg-indigo-600 border border-brand-indigo/50 shadow-[0_0_20px_rgba(90,75,255,0.3)] text-white rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
              >
                 {loading ? 'Processing...' : (
                   <>
